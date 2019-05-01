@@ -1,0 +1,14 @@
+{
+  "name": "hack-week",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "music-fns": "0.1.3"
+  }
+}

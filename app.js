@@ -16,10 +16,13 @@ const {
     Interval,
     getRoot,
     transpose,
-    getOctave
+    getOctave,
+    getAccidental,
+    hasAccidental
 } = require('music-fns');
 
 key = 'G';
+//quality = Scale.NATURAL_MINOR
 quality = Scale.MAJOR
 scale = createScale(key, quality)
 
@@ -32,23 +35,57 @@ chords = {
     'IV': createChord(getSubdominant(scale), Chord.MAJOR),
     'V': createChord(getDominant(scale), Chord.MAJOR),
     'vi': createChord(getSubmediant(scale), Chord.MINOR),
-    'vii': createChord(getLeadingTone(scale), Chord.DIMINISHED),
+    'viid': createChord(getLeadingTone(scale), Chord.DIMINISHED),
+
+    // TODO: raise leading tone
+    'i': createChord(getTonic(scale), Chord.MINOR),
+    'iid': createChord(getSupertonic(scale), Chord.DIMINISHED),
+    'III': createChord(getMediant(scale), Chord.MAJOR),
+    'iv': createChord(getSubdominant(scale), Chord.MINOR),
+    'V': createChord(getDominant(scale), Chord.MAJOR),
+    'VI': createChord(getSubmediant(scale), Chord.MAJOR),
+    'VII': createChord(getLeadingTone(scale), Chord.MAJOR),
+
+    'I7': createChord(getTonic(scale), Chord.MAJOR_SEVENTH),
+    'ii7': createChord(getSupertonic(scale), Chord.MINOR_SEVENTH),
+    'iii7': createChord(getMediant(scale), Chord.MINOR_SEVENTH),
+    'IV7': createChord(getSubdominant(scale), Chord.MAJOR_SEVENTH),
+    'V7': createChord(getDominant(scale), Chord.SEVENTH),
+    'vi7': createChord(getSubmediant(scale), Chord.MINOR_SEVENTH),
+    'vii7': createChord(getLeadingTone(scale), Chord.DIMINISHED) + getSubmediant(scale),
 }
+
 
 progression = [
     ['I', 0],
     ['I', 0],
     ['IV', 1],
     ['I', 1],
-    ['vi', 0], //7th chord
-    ['vi', 0], //7th chord
-    ['ii', 0], //7th chord
-    ['I', 1], //7th chord
-    ['ii', 1], //7th chord
-    ['V', 0], //7th chord
-    ['V', 1], //7th chord
-    ['V', 0], //7th chord
+    ['vi', 0],
+    ['vi', 0],
+    ['ii', 0],
+    ['I', 1],
+    ['ii', 1],
+    ['V7', 0],
+    ['V', 1],
+    ['V7', 0],
 ];
+/*
+progression = [
+    ['i', 0],
+    ['i', 1],
+    ['V', 2],
+    ['i', 0],
+    ['ii', 0],
+    ['V', 0],
+    ['i', 1],
+    ['V', 2],
+    ['i', 0],
+    ['i', 1],
+    ['V', 0],
+    ['i', 0],
+]
+*/
 
 s = []
 a = []
@@ -81,10 +118,18 @@ for (var i = 0; i < progression_length; i++) {
                 break;
         }
 
-
-        s.push(chord_tones[0]);
-        a.push(chord_tones[1]);
-        t.push(chord_tones[2]);
+        if (chord_tones.length == 3) {
+            s.push(chord_tones[0]);
+            a.push(chord_tones[1]);
+            t.push(chord_tones[2]);
+        } else {
+            remaining_tones = new Set(chord_tones);
+            remaining_tones.delete(chord_tones[inversion])
+            remaining_array = Array.from(remaining_tones)
+            s.push(remaining_array[0]);
+            a.push(remaining_array[1]);
+            t.push(remaining_array[2]);
+        }
 
         // choose highest possible for soprano
         switch(getRoot(s[i])) {
@@ -110,10 +155,28 @@ for (var i = 0; i < progression_length; i++) {
         prev = [s[i-1], a[i-1], t[i-1], b[i-1]];
 
         combinations = []
+
+        these_chord_tones = [];
+        is_seventh = false;
+
+        if (chord_tones.length == 3) {
+            these_chord_tones.push(chord_tones[0]);
+            these_chord_tones.push(chord_tones[1]);
+            these_chord_tones.push(chord_tones[2]);
+        } else {
+            is_seventh = true;
+            remaining_tones = new Set(chord_tones);
+            remaining_tones.delete(chord_tones[inversion])
+            remaining_array = Array.from(remaining_tones)
+            these_chord_tones.push(remaining_array[0]);
+            these_chord_tones.push(remaining_array[1]);
+            these_chord_tones.push(remaining_array[2]);
+        }
+
         for (x = 0; x < 3; x++) {
             for (y = 0; y < 3; y++) {
                 for (z = 0; z < 3; z++) {
-                    combinations.push([chord_tones[x], chord_tones[y], chord_tones[z], b[i]]);
+                    combinations.push([these_chord_tones[x], these_chord_tones[y], these_chord_tones[z], b[i]]);
                 }
             }
         }
@@ -130,10 +193,19 @@ for (var i = 0; i < progression_length; i++) {
 
         for (j = combinations.length-1; j >= 0; j--) {
             var combo = combinations[j];
-            if (new Set(combo).size != 3) {
+            unique_notes = new Set(combo).size;
+
+            if (is_seventh && unique_notes != 4) {
                 combinations.splice(j, 1);
                 continue;
             }
+            if (!is_seventh && unique_notes != 3) {
+                combinations.splice(j, 1);
+                continue;
+            }
+        }
+
+        for (j = combinations.length-1; j >= 0; j--) {
 
             sop_interval_up = getIntervals([getRoot(s[i-1]), getRoot(combinations[j][0])])[0];
             sop_interval_down = getIntervals([getRoot(combinations[j][0]), getRoot(s[i-1])])[0];
@@ -175,7 +247,6 @@ for (var i = 0; i < progression_length; i++) {
                     //console.log(x, y, prev_interval, cur_interval);
 
                     if (prev_interval == cur_interval) {
-                        console.log(prev_interval);
                         if (prev_interval % Interval.PERFECT_FIFTH == 0) {
                             delete_parallel = true;
                             //console.log('delete 5th')
@@ -195,6 +266,7 @@ for (var i = 0; i < progression_length; i++) {
             }
         }
 
+        //console.log(combinations)
         // choose combination with the smoothest voice leading
         voice_leadings = []
         for (j = 0; j < combinations.length; j++) {
@@ -226,9 +298,16 @@ console.log("%%staves {1}");
 console.log("%%staves {1 2 3 4}");
 console.log("V:1 [K:clef=treble]");
 
+accidental_string = {
+    "#": "^",
+    "b": '_'
+}
+
 for (i = 0; i < s.length; i++) {
     note = getRoot(s[i]);
     octave = getOctave(s[i]);
+    accidental = hasAccidental(s[i]) ? accidental_string[getAccidental(s[i])] : "=";
+
     octave_string = {
         1: ',,,',
         2: ',,',
@@ -245,6 +324,7 @@ console.log("V:2 [K:clef=treble]");
 for (i = 0; i < a.length; i++) {
     note = getRoot(a[i]);
     octave = getOctave(a[i]);
+    accidental = hasAccidental(a[i]) ? accidental_string[getAccidental(a[i])] : "=";
     octave_string = {
         1: ',,,',
         2: ',,',
@@ -261,6 +341,8 @@ console.log("V:3 [K:clef=bass]");
 for (i = 0; i < t.length; i++) {
     note = getRoot(t[i]);
     octave = getOctave(t[i]);
+    accidental = hasAccidental(t[i]) ? accidental_string[getAccidental(t[i])] : "=";
+    //console.log("JAY", t[i])
     octave_string = {
         1: ',,,',
         2: ',,',
@@ -276,6 +358,7 @@ console.log("V:4 [K:clef=bass]");
 for (i = 0; i < b.length; i++) {
     note = getRoot(b[i]);
     octave = getOctave(b[i]);
+    accidental = hasAccidental(b[i]) ? accidental_string[getAccidental(b[i])] : "=";
     octave_string = {
         1: ',,,',
         2: ',,',

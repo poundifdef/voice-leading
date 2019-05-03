@@ -59,7 +59,6 @@ chords = {
 
 
 progression = [
-    /*
     ['I', 0],
     ['I', 0],
     ['IV', 1],
@@ -74,17 +73,14 @@ progression = [
     ['V7', 0],
     ['I', 0],
     ['vi', 0],
-    */
     ['IV', 0],
     ['I', 1],
-    /*
     ['vi', 0],
     ['vi7', 0],
     ['ii', 1],
     ['ii', 1], // viio7/V
     ['V', 0],
     ['I', 0],
-    */
 ];
 /*
 progression = [
@@ -258,6 +254,10 @@ for (var i = 0; i < progression_length; i++) {
                     if (x == y) {
                         continue;
                     }
+
+                    if (getRoot(prev[y]) == getRoot(combo[y])) {
+                        continue;
+                    }
                     prev_interval = Math.abs(getIntervals([getRoot(prev[x]), getRoot(prev[y])])[0])
                     cur_interval = Math.abs(getIntervals([getRoot(combo[x]), getRoot(combo[y])])[0])
 
@@ -327,9 +327,10 @@ for (var i = 0; i < progression_length; i++) {
 
 console.log("X:1");
 console.log("T:Grand Staff With Four Voices");
-console.log("M:4/4");
-console.log("L:1/2");
+console.log("M:3/4");
+console.log("L:1/4");
 console.log("K:G");
+console.log("Q:70");
 console.log("%%staves {1}");
 console.log("%%staves {1 2 3 4}");
 console.log("V:1 [K:clef=treble]");

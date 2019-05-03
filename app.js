@@ -18,7 +18,9 @@ const {
     transpose,
     getOctave,
     getAccidental,
-    hasAccidental
+    hasAccidental,
+    getNote,
+    noteToMidi
 } = require('music-fns');
 
 key = 'G';
@@ -57,6 +59,7 @@ chords = {
 
 
 progression = [
+    /*
     ['I', 0],
     ['I', 0],
     ['IV', 1],
@@ -69,6 +72,19 @@ progression = [
     ['V7', 0],
     ['V', 1],
     ['V7', 0],
+    ['I', 0],
+    ['vi', 0],
+    */
+    ['IV', 0],
+    ['I', 1],
+    /*
+    ['vi', 0],
+    ['vi7', 0],
+    ['ii', 1],
+    ['ii', 1], // viio7/V
+    ['V', 0],
+    ['I', 0],
+    */
 ];
 /*
 progression = [
@@ -144,10 +160,10 @@ for (var i = 0; i < progression_length; i++) {
         // take inversion
         // choose alto note which is lower than root, below soprano
 
-        alto_interval = getIntervals([getRoot(a[i]), getRoot(s[i])])[0];
+        alto_interval = getIntervals([getNote(a[i]), getNote(s[i])])[0];
         a[i] = transpose(s[i], -alto_interval);
 
-        tenor_interval = getIntervals([getRoot(t[i]), getRoot(a[i])])[0];
+        tenor_interval = getIntervals([getNote(t[i]), getNote(a[i])])[0];
         t[i] = transpose(a[i], -tenor_interval);
 
 
@@ -206,19 +222,20 @@ for (var i = 0; i < progression_length; i++) {
         }
 
         for (j = combinations.length-1; j >= 0; j--) {
+            var combo = combinations[j];
 
-            sop_interval_up = getIntervals([getRoot(s[i-1]), getRoot(combinations[j][0])])[0];
-            sop_interval_down = getIntervals([getRoot(combinations[j][0]), getRoot(s[i-1])])[0];
+            sop_interval_up = getIntervals([getNote(s[i-1]), getNote(combinations[j][0])])[0];
+            sop_interval_down = getIntervals([getNote(combinations[j][0]), getNote(s[i-1])])[0];
             sop_final = sop_interval_up < sop_interval_down ? sop_interval_up : -sop_interval_down;
             combinations[j][0] = transpose(s[i-1], sop_final);
 
-            alt_interval_up = getIntervals([getRoot(a[i-1]), getRoot(combinations[j][1])])[0];
-            alt_interval_down = getIntervals([getRoot(combinations[j][1]), getRoot(a[i-1])])[0];
+            alt_interval_up = getIntervals([getNote(a[i-1]), getNote(combinations[j][1])])[0];
+            alt_interval_down = getIntervals([getNote(combinations[j][1]), getNote(a[i-1])])[0];
             alt_final = alt_interval_up < alt_interval_down ? alt_interval_up : -alt_interval_down;
             combinations[j][1] = transpose(a[i-1], alt_final);
 
-            ten_interval_up = getIntervals([getRoot(t[i-1]), getRoot(combinations[j][2])])[0];
-            ten_interval_down = getIntervals([getRoot(combinations[j][2]), getRoot(t[i-1])])[0];
+            ten_interval_up = getIntervals([getNote(t[i-1]), getNote(combinations[j][2])])[0];
+            ten_interval_down = getIntervals([getNote(combinations[j][2]), getNote(t[i-1])])[0];
             ten_final = ten_interval_up < ten_interval_down ? ten_interval_up : -ten_interval_down;
             combinations[j][2] = transpose(t[i-1], ten_final);
 
@@ -241,10 +258,12 @@ for (var i = 0; i < progression_length; i++) {
                     if (x == y) {
                         continue;
                     }
-                    prev_interval = getIntervals([prev[x], prev[y]])[0]
-                    cur_interval = getIntervals([combo[x], combo[y]])[0]
+                    prev_interval = Math.abs(getIntervals([getRoot(prev[x]), getRoot(prev[y])])[0])
+                    cur_interval = Math.abs(getIntervals([getRoot(combo[x]), getRoot(combo[y])])[0])
 
-                    //console.log(x, y, prev_interval, cur_interval);
+                    //if (j == 6) {
+                    //console.log(prev[x], prev[y], combo[x], combo[y], prev_interval, cur_interval);
+                    //}
 
                     if (prev_interval == cur_interval) {
                         if (prev_interval % Interval.PERFECT_FIFTH == 0) {
@@ -261,6 +280,23 @@ for (var i = 0; i < progression_length; i++) {
             }
 
             if (delete_parallel) {
+                combinations.splice(j, 1);
+                continue;
+            } else {
+                if (combinations[j][0] == 'B4') {
+                //console.log(j)
+                //console.log(s, a, t, b)
+                //console.log(combinations[j])
+                prev_interval = Math.abs(getIntervals([getRoot(s[0]), getRoot(b[0])])[0])
+                cur_interval = Math.abs(getIntervals([getRoot(combinations[j][0]), getRoot(combinations[j][3])])[0])
+                //console.log(prev_interval, cur_interval, prev_interval == cur_interval, prev_interval % Interval.PERFECT_OCTAVE)
+                }
+            }
+        }
+
+        for (j = combinations.length-1; j >= 0; j--) {
+            var combo = combinations[j];
+            if (noteToMidi(combo[0]) > noteToMidi('C6')) {
                 combinations.splice(j, 1);
                 continue;
             }
@@ -317,7 +353,7 @@ for (i = 0; i < s.length; i++) {
         6: "''",
         7: "'''",
     }
-    console.log(note + octave_string[octave]);
+    console.log(accidental + note + octave_string[octave]);
 }
 
 console.log("V:2 [K:clef=treble]");
@@ -334,7 +370,7 @@ for (i = 0; i < a.length; i++) {
         6: "''",
         7: "'''",
     }
-    console.log(note + octave_string[octave]);
+    console.log(accidental + note + octave_string[octave]);
 }
 
 console.log("V:3 [K:clef=bass]");
@@ -352,7 +388,7 @@ for (i = 0; i < t.length; i++) {
         6: "''",
         7: "'''",
     }
-    console.log(note + octave_string[octave]);
+    console.log(accidental + note + octave_string[octave]);
 }
 console.log("V:4 [K:clef=bass]");
 for (i = 0; i < b.length; i++) {
@@ -368,7 +404,7 @@ for (i = 0; i < b.length; i++) {
         6: "''",
         7: "'''",
     }
-    console.log(note + octave_string[octave]);
+    console.log(accidental + note + octave_string[octave]);
 }
 /*
 console.log(s)
